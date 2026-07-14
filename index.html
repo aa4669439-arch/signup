@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>活動報名表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F5FA;
+    --card: #FFFFFF;
+    --primary: #5B3E96;      /* 奇美紫 */
+    --primary-dark: #46307A;
+    --ink: #26203A;
+    --muted: #767090;
+    --line: #E5E2EF;
+    --ok: #2E8B6E;
+    --err: #C0392B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 60px;
+  }
+  .wrap { width: 100%; max-width: 560px; }
+
+  .banner {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: #fff;
+    border-radius: 16px 16px 0 0;
+    padding: 28px 28px 22px;
+  }
+  .banner .org {
+    font-size: 13px;
+    letter-spacing: 3px;
+    opacity: .85;
+    margin-bottom: 8px;
+  }
+  .banner h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 26px;
+    letter-spacing: 1px;
+  }
+  .banner .desc { margin-top: 10px; font-size: 14px; opacity: .9; line-height: 1.6; }
+  .banner .count-chip {
+    display: inline-block;
+    margin-top: 14px;
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.35);
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-size: 13px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-top: none;
+    border-radius: 0 0 16px 16px;
+    padding: 28px;
+  }
+  .field { margin-bottom: 18px; }
+  label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+  label .req { color: var(--err); margin-left: 2px; }
+  input, select, textarea {
+    width: 100%;
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    background: #FBFAFE;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 13px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(91,62,150,.15);
+  }
+  textarea { resize: vertical; min-height: 72px; }
+
+  button.submit {
+    width: 100%;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #fff;
+    background: var(--primary);
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: background .15s;
+  }
+  button.submit:hover { background: var(--primary-dark); }
+  button.submit:disabled { background: #B9AFD4; cursor: not-allowed; }
+
+  .msg { margin-top: 14px; font-size: 14px; text-align: center; display: none; line-height: 1.6; }
+  .msg.ok { display: block; color: var(--ok); }
+  .msg.err { display: block; color: var(--err); }
+
+  .done {
+    display: none;
+    text-align: center;
+    padding: 30px 10px 10px;
+  }
+  .done .icon { font-size: 52px; }
+  .done h2 { font-family: 'Noto Serif TC', serif; font-size: 22px; margin: 12px 0 6px; color: var(--primary); }
+  .done p { color: var(--muted); font-size: 14px; line-height: 1.7; }
+  .done button {
+    margin-top: 18px;
+    font: inherit; font-size: 14px;
+    color: var(--primary);
+    background: none;
+    border: 1px solid var(--primary);
+    border-radius: 999px;
+    padding: 8px 22px;
+    cursor: pointer;
+  }
+  .footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">
+    <div class="org">佳里奇美醫院　醫療服務組</div>
+    <h1 id="eventTitle">活動報名表</h1>
+    <div class="desc" id="eventDesc">請填寫以下資料完成報名，欄位標示 * 為必填。</div>
+    <span class="count-chip" id="countChip">載入報名人數中…</span>
+  </div>
+
+  <div class="card">
+    <div id="formArea">
+      <div class="field">
+        <label>姓名<span class="req">*</span></label>
+        <input id="name" maxlength="30" placeholder="請輸入姓名">
+      </div>
+      <div class="field">
+        <label>部門／單位<span class="req">*</span></label>
+        <select id="dept"></select>
+      </div>
+      <div class="field">
+        <label>聯絡電話／分機</label>
+        <input id="phone" maxlength="30" placeholder="例：06-7263333 #12345">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input id="email" type="email" maxlength="60" placeholder="選填">
+      </div>
+      <div class="field">
+        <label>備註</label>
+        <textarea id="note" maxlength="200" placeholder="飲食需求、其他說明…（選填）"></textarea>
+      </div>
+      <button class="submit" id="btnSubmit" onclick="submitForm()">送出報名</button>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <div class="done" id="doneArea">
+      <div class="icon">✅</div>
+      <h2>報名成功！</h2>
+      <p id="doneText">已收到您的報名資料。</p>
+      <button onclick="resetForm()">再報名一筆</button>
+    </div>
+  </div>
+
+  <div class="footer">資料僅供活動報名使用</div>
+</div>
+
+<script>
+// ========= 只要改這三個地方 =========
+const API_URL = 'https://script.google.com/macros/s/XXXXXXXX/exec'; // ← 換成你的 Apps Script /exec 網址
+const EVENT_TITLE = '活動報名表';   // ← 活動名稱
+const DEPTS = [                     // ← 部門／單位清單，自行增減
+  '醫療服務組', '護理部', '藥劑部', '檢驗科', '放射科',
+  '復健科', '行政部', '資訊室', '總務室', '社工室', '其他'
+];
+// ====================================
+
+document.getElementById('eventTitle').textContent = EVENT_TITLE;
+document.title = EVENT_TITLE;
+const deptSel = document.getElementById('dept');
+deptSel.innerHTML = '<option value="">請選擇部門／單位</option>' +
+  DEPTS.map(d => `<option value="${d}">${d}</option>`).join('');
+
+async function loadCount() {
+  const chip = document.getElementById('countChip');
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    if (data.success) chip.textContent = `目前已有 ${data.signups.length} 人報名`;
+    else chip.textContent = '報名進行中';
+  } catch (e) {
+    chip.textContent = '報名進行中';
+  }
+}
+loadCount();
+
+async function submitForm() {
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('btnSubmit');
+  msg.className = 'msg';
+
+  const payload = {
+    name: document.getElementById('name').value.trim(),
+    dept: document.getElementById('dept').value,
+    phone: document.getElementById('phone').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    note: document.getElementById('note').value.trim()
+  };
+  if (!payload.name) { msg.textContent = '請輸入姓名'; msg.className = 'msg err'; return; }
+  if (!payload.dept) { msg.textContent = '請選擇部門／單位'; msg.className = 'msg err'; return; }
+
+  btn.disabled = true;
+  btn.textContent = '送出中…';
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      // 用 text/plain 避免 CORS preflight，與 Apps Script 串接的關鍵
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('formArea').style.display = 'none';
+      document.getElementById('doneArea').style.display = 'block';
+      document.getElementById('doneText').textContent =
+        `${payload.name}（${payload.dept}）已完成報名，目前共 ${data.count} 人。`;
+    } else {
+      msg.textContent = data.error || '送出失敗，請稍後再試';
+      msg.className = 'msg err';
+    }
+  } catch (e) {
+    msg.textContent = '連線失敗，請確認網路後再試一次';
+    msg.className = 'msg err';
+  }
+  btn.disabled = false;
+  btn.textContent = '送出報名';
+}
+
+function resetForm() {
+  ['name', 'phone', 'email', 'note'].forEach(id => document.getElementById(id).value = '');
+  deptSel.value = '';
+  document.getElementById('doneArea').style.display = 'none';
+  document.getElementById('formArea').style.display = 'block';
+  loadCount();
+}
+</script>
+</body>
+</html>
