@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>講座簽到</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F5FA;
+    --card: #FFFFFF;
+    --primary: #5B3E96;
+    --primary-dark: #46307A;
+    --ink: #26203A;
+    --muted: #767090;
+    --line: #E5E2EF;
+    --ok: #2E8B6E;
+    --err: #C0392B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 60px;
+  }
+  .wrap { width: 100%; max-width: 560px; }
+
+  .banner {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: #fff;
+    border-radius: 16px 16px 0 0;
+    padding: 28px 28px 22px;
+  }
+  .banner .org { font-size: 13px; letter-spacing: 3px; opacity: .85; margin-bottom: 8px; }
+  .banner h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 26px;
+    letter-spacing: 1px;
+  }
+  .banner .desc { margin-top: 10px; font-size: 14px; opacity: .9; line-height: 1.6; }
+  .banner .count-chip {
+    display: inline-block;
+    margin-top: 14px;
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.35);
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-size: 13px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-top: none;
+    border-radius: 0 0 16px 16px;
+    padding: 28px;
+  }
+  .field { margin-bottom: 18px; }
+  label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+  label .req { color: var(--err); margin-left: 2px; }
+  input, select {
+    width: 100%;
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    background: #FBFAFE;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 13px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(91,62,150,.15);
+  }
+
+  button.submit {
+    width: 100%;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #fff;
+    background: var(--primary);
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: background .15s;
+  }
+  button.submit:hover { background: var(--primary-dark); }
+  button.submit:disabled { background: #B9AFD4; cursor: not-allowed; }
+
+  .msg { margin-top: 14px; font-size: 14px; text-align: center; display: none; line-height: 1.6; }
+  .msg.ok { display: block; color: var(--ok); }
+  .msg.err { display: block; color: var(--err); }
+
+  .done { display: none; text-align: center; padding: 30px 10px 10px; }
+  .done .icon { font-size: 52px; }
+  .done h2 { font-family: 'Noto Serif TC', serif; font-size: 22px; margin: 12px 0 6px; color: var(--primary); }
+  .done p { color: var(--muted); font-size: 14px; line-height: 1.7; }
+  .done button {
+    margin-top: 18px;
+    font: inherit; font-size: 14px;
+    color: var(--primary);
+    background: none;
+    border: 1px solid var(--primary);
+    border-radius: 999px;
+    padding: 8px 22px;
+    cursor: pointer;
+  }
+  .footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">
+    <div class="org">佳里奇美醫院　醫療服務組</div>
+    <h1>院內講座簽到</h1>
+    <div class="desc">請選擇講座場次並填寫資料完成簽到，欄位標示 * 為必填。</div>
+    <span class="count-chip" id="countChip">載入簽到人次中…</span>
+  </div>
+
+  <div class="card">
+    <div id="formArea">
+      <div class="field">
+        <label>講座場次<span class="req">*</span></label>
+        <select id="session"></select>
+      </div>
+      <div class="field">
+        <label>姓名<span class="req">*</span></label>
+        <input id="name" maxlength="30" placeholder="請輸入姓名">
+      </div>
+      <div class="field">
+        <label>部門／單位<span class="req">*</span></label>
+        <select id="dept"></select>
+      </div>
+      <button class="submit" id="btnSubmit" onclick="submitForm()">完成簽到</button>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <div class="done" id="doneArea">
+      <div class="icon">✅</div>
+      <h2>簽到成功！</h2>
+      <p id="doneText">已完成簽到。</p>
+      <button onclick="resetForm()">再簽到一筆</button>
+    </div>
+  </div>
+
+  <div class="footer">資料僅供講座簽到使用</div>
+</div>
+
+<script>
+// ========= 只要改這三個地方 =========
+const API_URL = 'https://script.google.com/macros/s/XXXXXXXX/exec'; // ← 換成你的 Apps Script /exec 網址
+const SESSIONS = [                  // ← 講座場次清單，自行增減
+  '7/20（一）AI 工具入門',
+  '7/27（一）醫療品質專題',
+  '8/03（一）感染管制新知',
+];
+const DEPTS = [                     // ← 部門／單位清單，自行增減
+  '醫療服務組', '護理部', '藥劑部', '檢驗科', '放射科',
+  '復健科', '行政部', '資訊室', '總務室', '社工室', '其他'
+];
+// ====================================
+
+const sessionSel = document.getElementById('session');
+sessionSel.innerHTML = '<option value="">請選擇講座場次</option>' +
+  SESSIONS.map(s => `<option value="${s}">${s}</option>`).join('');
+const deptSel = document.getElementById('dept');
+deptSel.innerHTML = '<option value="">請選擇部門／單位</option>' +
+  DEPTS.map(d => `<option value="${d}">${d}</option>`).join('');
+
+async function loadCount() {
+  const chip = document.getElementById('countChip');
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    if (data.success) chip.textContent = `目前累計 ${data.signups.length} 人次簽到`;
+    else chip.textContent = '簽到進行中';
+  } catch (e) {
+    chip.textContent = '簽到進行中';
+  }
+}
+loadCount();
+
+async function submitForm() {
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('btnSubmit');
+  msg.className = 'msg';
+
+  const payload = {
+    session: document.getElementById('session').value,
+    name: document.getElementById('name').value.trim(),
+    dept: document.getElementById('dept').value
+  };
+  if (!payload.session) { msg.textContent = '請選擇講座場次'; msg.className = 'msg err'; return; }
+  if (!payload.name) { msg.textContent = '請輸入姓名'; msg.className = 'msg err'; return; }
+  if (!payload.dept) { msg.textContent = '請選擇部門／單位'; msg.className = 'msg err'; return; }
+
+  btn.disabled = true;
+  btn.textContent = '送出中…';
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      // 用 text/plain 避免 CORS preflight，與 Apps Script 串接的關鍵
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('formArea').style.display = 'none';
+      document.getElementById('doneArea').style.display = 'block';
+      document.getElementById('doneText').textContent =
+        `${payload.name}（${payload.dept}）已完成「${payload.session}」簽到。`;
+    } else {
+      msg.textContent = data.error || '送出失敗，請稍後再試';
+      msg.className = 'msg err';
+    }
+  } catch (e) {
+    msg.textContent = '連線失敗，請確認網路後再試一次';
+    msg.className = 'msg err';
+  }
+  btn.disabled = false;
+  btn.textContent = '完成簽到';
+}
+
+function resetForm() {
+  document.getElementById('name').value = '';
+  deptSel.value = '';
+  sessionSel.value = '';
+  document.getElementById('doneArea').style.display = 'none';
+  document.getElementById('formArea').style.display = 'block';
+  loadCount();
+}
+</script>
+</body>
+</html>

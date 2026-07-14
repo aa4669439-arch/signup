@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>講座簽到統計儀表板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #F4F2F9;
+    --card: #FFFFFF;
+    --primary: #5B3E96;
+    --primary-dark: #46307A;
+    --ink: #2A2140;
+    --muted: #7A7492;
+    --line: #E6E2F0;
+    --gold: #C9A227;
+    --bar-bg: #EFEBF7;
+    --err: #C0392B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 26px 16px 70px;
+    display: flex;
+    justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 960px; }
+
+  /* ===== 頁首 ===== */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .header .org { font-size: 12px; letter-spacing: 4px; color: var(--muted); margin-bottom: 5px; }
+  .header h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 28px;
+    color: var(--primary-dark);
+    letter-spacing: 2px;
+  }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .actions button {
+    font: inherit; font-size: 14px; font-weight: 500;
+    padding: 9px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--primary);
+    background: #fff;
+    color: var(--primary);
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+  }
+  .actions button:hover { background: #F1EDF9; }
+  .actions button:active { transform: scale(.97); }
+  .actions button.primary { background: var(--primary); color: #fff; }
+  .actions button.primary:hover { background: var(--primary-dark); }
+
+  /* ===== 英雄總覽區 ===== */
+  .hero {
+    background: linear-gradient(130deg, #46307A 0%, #5B3E96 55%, #7454B3 100%);
+    border-radius: 20px;
+    color: #fff;
+    padding: 30px 34px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    right: -70px; top: -70px;
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.06);
+  }
+  .hero .label { font-size: 14px; letter-spacing: 3px; opacity: .85; }
+  .hero .total {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 76px;
+    line-height: 1.1;
+    letter-spacing: 2px;
+  }
+  .hero .total small { font-size: 24px; font-weight: 700; margin-left: 6px; opacity: .85; }
+  .hero .sub { margin-top: 10px; font-size: 13px; opacity: .85; line-height: 1.8; }
+  .hero .sub b { color: #FFE9A8; font-weight: 700; }
+
+  .donut-box { display: flex; align-items: center; gap: 18px; position: relative; z-index: 1; }
+  .donut-box svg { width: 150px; height: 150px; }
+  .legend { font-size: 12.5px; line-height: 2; max-width: 220px; }
+  .legend .dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    margin-right: 7px;
+    vertical-align: middle;
+  }
+  .legend .pct { color: #E8DFFA; margin-left: 6px; }
+
+  /* ===== 指標卡片 ===== */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px 20px;
+  }
+  .stat-card .label { font-size: 13px; color: var(--muted); }
+  .stat-card .value {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 32px;
+    color: var(--primary);
+    margin-top: 4px;
+  }
+  .stat-card .value small { font-size: 14px; font-weight: 700; color: var(--muted); margin-left: 3px; }
+
+  /* ===== 面板 ===== */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 24px 26px;
+    margin-bottom: 16px;
+  }
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .panel h2 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding-left: 12px;
+    border-left: 4px solid var(--primary);
+  }
+  .panel-head .hint { font-size: 12.5px; color: var(--muted); }
+
+  /* 排行長條 */
+  .bar-row {
+    display: grid;
+    grid-template-columns: 26px 150px 1fr 52px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 11px;
+    font-size: 14px;
+  }
+  .bar-row .rank { font-family: 'Noto Serif TC', serif; font-weight: 900; color: var(--muted); text-align: center; }
+  .bar-row.top1 .rank { color: var(--gold); font-size: 17px; }
+  .bar-row .row-name { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { background: var(--bar-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+  .bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    width: 0;
+    background: linear-gradient(90deg, var(--primary) 0%, #9878D2 100%);
+    transition: width .7s cubic-bezier(.25,.8,.35,1);
+  }
+  .bar-row.top1 .bar-fill { background: linear-gradient(90deg, #A07E1C 0%, var(--gold) 100%); }
+  .bar-row .num { font-weight: 700; color: var(--primary-dark); white-space: nowrap; }
+
+  /* 每日趨勢 */
+  .trend {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 150px;
+    padding-top: 8px;
+    overflow-x: auto;
+  }
+  .trend .col {
+    flex: 1 1 0;
+    min-width: 34px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    gap: 5px;
+  }
+  .trend .t-num { font-size: 12px; font-weight: 700; color: var(--primary-dark); }
+  .trend .t-bar {
+    width: 100%;
+    max-width: 40px;
+    background: linear-gradient(180deg, #9878D2 0%, var(--primary) 100%);
+    border-radius: 7px 7px 3px 3px;
+    height: 0;
+    transition: height .6s ease;
+  }
+  .trend .t-date { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  /* 名單 */
+  .filter-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .search, .session-sel {
+    font: inherit; font-size: 14px;
+    padding: 8px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #FBFAFE;
+  }
+  .search { width: 200px; max-width: 100%; }
+  .search:focus, .session-sel:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(91,62,150,.12); }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 10px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: var(--muted); font-weight: 500; font-size: 12.5px; letter-spacing: 1px; white-space: nowrap; }
+  tbody tr:nth-child(even) td { background: #FAF8FD; }
+  tbody tr:hover td { background: #F1EDF9; }
+  td.num-col, th.num-col { width: 44px; color: var(--muted); }
+  .tag {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 2px 11px;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .tag.session { background: #EFEBF7; color: var(--primary-dark); font-weight: 700; }
+  .tag.dept { background: #EDF3EA; color: #3D6B33; }
+  .del-btn {
+    font: inherit; font-size: 12px;
+    color: var(--err);
+    background: none;
+    border: 1px solid #EAC6C1;
+    border-radius: 8px;
+    padding: 3px 10px;
+    cursor: pointer;
+  }
+  .del-btn:hover { background: #FBF0EE; }
+  .empty { text-align: center; color: var(--muted); padding: 34px 0; font-size: 14px; }
+  .status { font-size: 12.5px; color: var(--muted); }
+  .footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 22px; letter-spacing: 1px; }
+
+  @media (max-width: 700px) {
+    .hero { grid-template-columns: 1fr; padding: 24px; }
+    .hero .total { font-size: 56px; }
+    .bar-row { grid-template-columns: 22px 100px 1fr 46px; }
+  }
+  @media print {
+    .actions, .del-btn, .search, .session-sel { display: none !important; }
+    body { background: #fff; padding: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bar-fill, .trend .t-bar { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <div class="org">佳里奇美醫院　醫療服務組</div>
+      <h1>講座簽到統計儀表板</h1>
+    </div>
+    <div class="actions">
+      <button onclick="window.print()">🖨 列印</button>
+      <button onclick="load()">🔄 重新整理</button>
+      <button class="primary" onclick="exportExcel()">⬇ 匯出 Excel</button>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div>
+      <div class="label">總簽到人次</div>
+      <div class="total"><span id="totalCount">–</span><small>人次</small></div>
+      <div class="sub" id="heroSub">載入資料中…</div>
+    </div>
+    <div class="donut-box">
+      <svg id="donut" viewBox="0 0 42 42"></svg>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="stat-card">
+      <div class="label">講座場次數</div>
+      <div class="value" id="sessionCount">–<small>場</small></div>
+    </div>
+    <div class="stat-card">
+      <div class="label">今日簽到</div>
+      <div class="value" id="todayCount">–<small>人次</small></div>
+    </div>
+    <div class="stat-card">
+      <div class="label">參與部門數</div>
+      <div class="value" id="deptCount">–<small>個</small></div>
+    </div>
+    <div class="stat-card">
+      <div class="label">平均每場</div>
+      <div class="value" id="avgCount">–<small>人</small></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>各場次簽到人數</h2>
+      <span class="hint">依簽到人數排序・環圈圖同步顯示佔比</span>
+    </div>
+    <div id="sessionBars"><div class="empty">載入中…</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>部門參與排行</h2>
+      <span class="hint">哪個單位最捧場</span>
+    </div>
+    <div id="deptBars"><div class="empty">載入中…</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>每日簽到趨勢</h2>
+      <span class="hint">最近 14 天</span>
+    </div>
+    <div class="trend" id="trend"><div class="empty" style="width:100%">載入中…</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>完整簽到名單</h2>
+      <div class="filter-row">
+        <select class="session-sel" id="sessionSel" onchange="renderTable()">
+          <option value="">全部場次</option>
+        </select>
+        <input class="search" id="search" placeholder="搜尋姓名或部門…" oninput="renderTable()">
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="num-col">#</th><th>姓名</th><th>部門／單位</th>
+            <th>講座場次</th><th>簽到時間</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"><tr><td colspan="6" class="empty">載入中…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="status" id="status" style="margin-top:12px;"></div>
+  </div>
+
+  <div class="footer">講座簽到統計儀表板・資料僅供內部使用</div>
+</div>
+
+<script>
+// ========= 只要改這一個地方 =========
+const API_URL = 'https://script.google.com/macros/s/XXXXXXXX/exec'; // ← 換成你的 Apps Script /exec 網址
+// ====================================
+
+const COLORS = ['#FFD75E', '#B9A0E8', '#8FD6C0', '#F0A88A', '#9CC4F0', '#E8B9D5', '#CFC8E0'];
+let checkins = [];
+
+const p2 = n => String(n).padStart(2, '0');
+function fmtTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  return `${d.getFullYear()}/${p2(d.getMonth()+1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+}
+function dateKey(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : `${d.getFullYear()}/${p2(d.getMonth()+1)}/${p2(d.getDate())}`;
+}
+function esc(str) {
+  return (str || '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function groupCount(rows, key) {
+  const m = {};
+  rows.forEach(r => { const k = r[key] || '未填'; m[k] = (m[k] || 0) + 1; });
+  return Object.entries(m).sort((a, b) => b[1] - a[1]);
+}
+
+async function load() {
+  document.getElementById('status').textContent = '載入中…';
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || '讀取失敗');
+    checkins = data.signups || data.checkins || [];
+    render();
+    document.getElementById('status').textContent = `資料更新時間：${fmtTime(new Date().toISOString())}　共 ${checkins.length} 筆`;
+  } catch (e) {
+    document.getElementById('status').textContent = '讀取失敗：' + e.message + '（請確認 API_URL 是否正確）';
+  }
+}
+
+function render() {
+  const total = checkins.length;
+  const sessions = groupCount(checkins, 'session');
+  const depts = groupCount(checkins, 'dept');
+
+  // --- 英雄區 ---
+  document.getElementById('totalCount').textContent = total;
+  const todayKey = dateKey(new Date().toISOString());
+  const todayN = checkins.filter(c => dateKey(c.time) === todayKey).length;
+  const latest = total ? checkins[total - 1] : null;
+  document.getElementById('heroSub').innerHTML = total
+    ? `今日簽到 <b>${todayN}</b> 人次　｜　最新簽到：<b>${esc(latest.dept)} ${esc(latest.name)}</b>（${fmtTime(latest.time)}）`
+    : '目前還沒有人簽到，把簽到連結或 QR Code 貼到會場吧！';
+
+  // --- 環圈圖（場次佔比）---
+  drawDonut(sessions, total);
+
+  // --- 指標卡片 ---
+  document.getElementById('sessionCount').innerHTML = sessions.length + '<small>場</small>';
+  document.getElementById('todayCount').innerHTML = todayN + '<small>人次</small>';
+  document.getElementById('deptCount').innerHTML = depts.length + '<small>個</small>';
+  document.getElementById('avgCount').innerHTML =
+    (sessions.length ? (total / sessions.length).toFixed(1) : 0) + '<small>人</small>';
+
+  // --- 場次與部門排行 ---
+  drawBars('sessionBars', sessions);
+  drawBars('deptBars', depts);
+
+  // --- 每日趨勢 ---
+  drawTrend();
+
+  // --- 場次篩選下拉 ---
+  const sel = document.getElementById('sessionSel');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">全部場次</option>' +
+    sessions.map(([s]) => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+
+  renderTable();
+}
+
+function drawDonut(entries, total) {
+  const svg = document.getElementById('donut');
+  const legend = document.getElementById('legend');
+  if (!total) {
+    svg.innerHTML = '<circle cx="21" cy="21" r="15.9" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="5"/>' +
+      '<text x="21" y="23" text-anchor="middle" style="font-size:4px;fill:#fff;opacity:.9;">尚無資料</text>';
+    legend.innerHTML = '';
+    return;
+  }
+  const top = entries.slice(0, 6);
+  const otherN = entries.slice(6).reduce((sum, e) => sum + e[1], 0);
+  const parts = otherN ? [...top, ['其他場次', otherN]] : top;
+
+  const C = 2 * Math.PI * 15.9;
+  let offset = 0;
+  let circles = '';
+  parts.forEach(([name, n], i) => {
+    const frac = n / total;
+    circles += `<circle cx="21" cy="21" r="15.9" fill="none"
+      stroke="${COLORS[i % COLORS.length]}" stroke-width="5.2"
+      stroke-dasharray="${(frac * C).toFixed(3)} ${(C - frac * C).toFixed(3)}"
+      stroke-dashoffset="${(-offset * C + C / 4).toFixed(3)}"/>`;
+    offset += frac;
+  });
+  svg.innerHTML = circles +
+    `<text x="21" y="20" text-anchor="middle" style="font-size:5px;font-weight:900;fill:#fff;font-family:'Noto Serif TC',serif;">${total}</text>` +
+    `<text x="21" y="26" text-anchor="middle" style="font-size:3px;fill:rgba(255,255,255,.8);">人次</text>`;
+
+  legend.innerHTML = parts.map(([name, n], i) =>
+    `<div><span class="dot" style="background:${COLORS[i % COLORS.length]}"></span>${esc(name)}<span class="pct">${(n / total * 100).toFixed(0)}%</span></div>`
+  ).join('');
+}
+
+function drawBars(elId, entries) {
+  const box = document.getElementById(elId);
+  if (!entries.length) {
+    box.innerHTML = '<div class="empty">目前還沒有簽到資料</div>';
+    return;
+  }
+  const max = entries[0][1];
+  box.innerHTML = entries.map(([name, n], i) => `
+    <div class="bar-row ${i === 0 ? 'top1' : ''}">
+      <div class="rank">${i === 0 ? '👑' : i + 1}</div>
+      <div class="row-name">${esc(name)}</div>
+      <div class="bar-track"><div class="bar-fill" data-w="${(n / max * 100).toFixed(1)}"></div></div>
+      <div class="num">${n} 人</div>
+    </div>`).join('');
+  requestAnimationFrame(() =>
+    box.querySelectorAll('.bar-fill').forEach(el => el.style.width = el.dataset.w + '%'));
+}
+
+function drawTrend() {
+  const trend = document.getElementById('trend');
+  if (!checkins.length) {
+    trend.innerHTML = '<div class="empty" style="width:100%">目前還沒有簽到資料</div>';
+    return;
+  }
+  const countMap = {};
+  checkins.forEach(c => {
+    const k = dateKey(c.time);
+    if (k) countMap[k] = (countMap[k] || 0) + 1;
+  });
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const k = `${d.getFullYear()}/${p2(d.getMonth()+1)}/${p2(d.getDate())}`;
+    days.push([k, countMap[k] || 0]);
+  }
+  const max = Math.max(...days.map(d => d[1]), 1);
+  trend.innerHTML = days.map(([k, n]) => `
+    <div class="col">
+      <div class="t-num">${n || ''}</div>
+      <div class="t-bar" data-h="${n ? Math.max(n / max * 100, 6) : 2}"></div>
+      <div class="t-date">${k.slice(5)}</div>
+    </div>`).join('');
+  requestAnimationFrame(() =>
+    trend.querySelectorAll('.t-bar').forEach(el => el.style.height = el.dataset.h + '%'));
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tbody');
+  const kw = document.getElementById('search').value.trim();
+  const ses = document.getElementById('sessionSel').value;
+  let rows = checkins.slice().reverse();
+  if (ses) rows = rows.filter(c => c.session === ses);
+  if (kw) rows = rows.filter(c => (c.name || '').includes(kw) || (c.dept || '').includes(kw));
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty">${(kw || ses) ? '找不到符合條件的簽到資料' : '目前還沒有人簽到'}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((c, i) => `
+    <tr>
+      <td class="num-col">${rows.length - i}</td>
+      <td>${esc(c.name)}</td>
+      <td><span class="tag dept">${esc(c.dept)}</span></td>
+      <td><span class="tag session">${esc(c.session || '未填')}</span></td>
+      <td>${fmtTime(c.time)}</td>
+      <td><button class="del-btn" onclick="del('${c.id}')">刪除</button></td>
+    </tr>`).join('');
+}
+
+async function del(id) {
+  const target = checkins.find(c => c.id === id);
+  if (!target) return;
+  if (!confirm(`確定要刪除「${target.dept} ${target.name}」的簽到資料嗎？`)) return;
+  const key = prompt('請輸入管理密碼：');
+  if (key === null) return;
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', id: id, key: key })
+    });
+    const data = await res.json();
+    if (data.success) { checkins = data.signups || data.checkins || []; render(); }
+    else alert(data.error || '刪除失敗');
+  } catch (e) {
+    alert('連線失敗，請稍後再試');
+  }
+}
+
+function exportExcel() {
+  if (!checkins.length) { alert('目前沒有簽到資料'); return; }
+
+  const listRows = checkins.map((c, i) => ({
+    '序號': i + 1, '姓名': c.name, '部門／單位': c.dept,
+    '講座場次': c.session || '未填', '簽到時間': fmtTime(c.time)
+  }));
+  const ws1 = XLSX.utils.json_to_sheet(listRows);
+  ws1['!cols'] = [{wch:6},{wch:12},{wch:16},{wch:28},{wch:18}];
+
+  const mkStat = (key, label) => {
+    const rows = groupCount(checkins, key).map(([name, n]) =>
+      ({ [label]: name, '簽到人次': n, '佔比': (n / checkins.length * 100).toFixed(1) + '%' }));
+    rows.push({ [label]: '總計', '簽到人次': checkins.length, '佔比': '100%' });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:28},{wch:10},{wch:8}];
+    return ws;
+  };
+
+  const dayMap = {};
+  checkins.forEach(c => { const k = dateKey(c.time); if (k) dayMap[k] = (dayMap[k] || 0) + 1; });
+  const dayRows = Object.entries(dayMap).sort().map(([d, n]) => ({ '日期': d, '簽到人次': n }));
+  const ws4 = XLSX.utils.json_to_sheet(dayRows);
+  ws4['!cols'] = [{wch:14},{wch:10}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, '簽到名單');
+  XLSX.utils.book_append_sheet(wb, mkStat('session', '講座場次'), '場次統計');
+  XLSX.utils.book_append_sheet(wb, mkStat('dept', '部門／單位'), '部門統計');
+  XLSX.utils.book_append_sheet(wb, ws4, '每日統計');
+  const t = new Date();
+  XLSX.writeFile(wb, `講座簽到統計_${t.getFullYear()}${p2(t.getMonth()+1)}${p2(t.getDate())}.xlsx`);
+}
+
+load();
+</script>
+</body>
+</html>
