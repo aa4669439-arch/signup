@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>報名名單查閱</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #2F7FF0;
+    --blue-dark: #1E5FBF;
+    --ink: #26313F;
+    --muted: #7C8797;
+    --line: #E3E9F2;
+    --card: #FFFFFF;
+    --gold: #E8A93C;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    background: linear-gradient(160deg, #E9F5F1 0%, #EDF3FC 55%, #F3EFF9 100%);
+    padding: 30px 18px 70px;
+    display: flex;
+    justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 1080px; }
+
+  /* ===== 頁首 ===== */
+  .top {
+    text-align: center;
+    margin-bottom: 22px;
+  }
+  .top .org { font-size: 13px; letter-spacing: 4px; color: var(--muted); margin-bottom: 6px; }
+  .top h1 { font-size: 30px; font-weight: 900; letter-spacing: 3px; }
+  .top .sub { margin-top: 8px; font-size: 14px; color: var(--muted); }
+  .top .btns { margin-top: 16px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .top .btns a, .top .btns button {
+    font: inherit; font-size: 14px; font-weight: 500;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 22px;
+    border-radius: 12px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 2px 8px rgba(38,49,63,.06);
+    transition: transform .12s, box-shadow .12s;
+  }
+  .top .btns a.primary { background: linear-gradient(135deg, #2F9E8F, #2F7FF0); color: #fff; border: none; }
+  .top .btns a:hover, .top .btns button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(38,49,63,.12); }
+
+  /* ===== 篩選面板 ===== */
+  .filter-panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 24px 26px;
+    box-shadow: 0 4px 18px rgba(38,49,63,.05);
+    margin-bottom: 20px;
+  }
+  .filter-panel .f-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14.5px; font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 20px; }
+  .chip {
+    font: inherit; font-size: 13.5px; font-weight: 500;
+    padding: 8px 17px;
+    border-radius: 11px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .chip:hover { border-color: var(--blue); color: var(--blue); }
+  .chip.active {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(47,127,240,.35);
+  }
+  .search-row { position: relative; }
+  .search-row input {
+    width: 100%;
+    font: inherit; font-size: 14.5px;
+    padding: 12px 16px 12px 42px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #F8FAFD;
+  }
+  .search-row input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(47,127,240,.13); }
+  .search-row .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; }
+
+  /* ===== 人數統計列 ===== */
+  .count-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .count-badge {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 20px;
+    font-size: 14px;
+    color: var(--muted);
+    box-shadow: 0 2px 8px rgba(38,49,63,.05);
+  }
+  .count-badge b { color: var(--blue); font-size: 19px; font-weight: 900; margin: 0 3px; }
+
+  /* ===== 卡片格 ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
+  }
+  .person {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 3px 14px rgba(38,49,63,.05);
+    transition: transform .14s, box-shadow .14s;
+    overflow: hidden;
+  }
+  .person:hover { transform: translateY(-3px); box-shadow: 0 8px 22px rgba(38,49,63,.11); }
+  .ribbon {
+    position: absolute;
+    top: 12px; right: -32px;
+    transform: rotate(38deg);
+    background: linear-gradient(90deg, #F3C049, var(--gold));
+    color: #7A5410;
+    font-size: 11px; font-weight: 700;
+    padding: 3px 36px;
+    letter-spacing: 1px;
+  }
+  .p-head { display: flex; align-items: center; gap: 13px; margin-bottom: 14px; }
+  .avatar {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 19px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .p-name { font-size: 17px; font-weight: 700; }
+  .p-time { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+  .p-tags { display: flex; flex-direction: column; gap: 7px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12.5px;
+    border-radius: 9px;
+    padding: 6px 12px;
+    width: fit-content;
+    max-width: 100%;
+    word-break: break-all;
+  }
+  .tag.dept  { background: #E7F0FE; color: var(--blue-dark); font-weight: 700; }
+  .tag.phone { background: #E6F5F0; color: #1F7A5C; }
+  .tag.mail  { background: #FDEEEA; color: #B24B32; }
+  .tag.note  { background: #F4F0FA; color: #6A4FA3; }
+
+  .empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px dashed var(--line);
+    border-radius: 16px;
+    padding: 50px 20px;
+    font-size: 14.5px;
+  }
+  .status { text-align: center; font-size: 12.5px; color: var(--muted); margin-top: 24px; }
+
+  @media (max-width: 480px) {
+    .top h1 { font-size: 24px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .person, .top .btns a, .top .btns button { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="org">佳里奇美醫院　醫療服務組</div>
+    <h1 id="pageTitle">報名名單查閱</h1>
+    <div class="sub">依部門篩選或輸入關鍵字，快速查看報名夥伴</div>
+    <div class="btns">
+      <a class="primary" href="stats.html">📊 統計儀表板</a>
+      <a href="index.html">📝 前往報名</a>
+      <button onclick="load()">🔄 重新整理</button>
+    </div>
+  </div>
+
+  <div class="filter-panel">
+    <div class="f-label">🏥 選擇部門／單位</div>
+    <div class="chips" id="chips"><span style="color:var(--muted);font-size:13px;">載入中…</span></div>
+    <div class="f-label">🔍 搜尋</div>
+    <div class="search-row">
+      <span class="icon">🔍</span>
+      <input id="search" placeholder="輸入姓名或單位關鍵字…" oninput="render()">
+    </div>
+  </div>
+
+  <div class="count-row">
+    <div class="count-badge">此條件下共找到<b id="count">0</b>人</div>
+  </div>
+
+  <div class="grid" id="grid"><div class="empty">載入中…</div></div>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+// ========= 只要改這一個地方 =========
+const API_URL = 'https://script.google.com/macros/s/XXXXXXXX/exec'; // ← 換成你的 Apps Script /exec 網址
+// ====================================
+
+const AVATAR_COLORS = ['#2F7FF0', '#2F9E8F', '#E06A4E', '#8358C9', '#D9962B', '#C9538F', '#4A6FA5', '#5B9E4D'];
+let signups = [];
+let activeDept = '全部單位';
+
+const p2 = n => String(n).padStart(2, '0');
+function fmtTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  return `${d.getFullYear()}/${p2(d.getMonth()+1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+}
+function esc(str) {
+  return (str || '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function hashColor(str) {
+  let h = 0;
+  for (const ch of (str || '?')) h = (h * 31 + ch.codePointAt(0)) % 997;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+async function load() {
+  document.getElementById('status').textContent = '載入中…';
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || '讀取失敗');
+    signups = data.signups || [];
+    buildChips();
+    render();
+    document.getElementById('status').textContent = `資料更新時間：${fmtTime(new Date().toISOString())}`;
+  } catch (e) {
+    document.getElementById('grid').innerHTML = '<div class="empty">讀取失敗：' + esc(e.message) + '<br>請確認 API_URL 是否正確</div>';
+    document.getElementById('status').textContent = '';
+  }
+}
+
+function buildChips() {
+  const depts = [...new Set(signups.map(s => s.dept))].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+  const all = ['全部單位', ...depts];
+  if (!all.includes(activeDept)) activeDept = '全部單位';
+  document.getElementById('chips').innerHTML = all.map(d =>
+    `<button class="chip ${d === activeDept ? 'active' : ''}" onclick="setDept('${esc(d).replace(/'/g, "\\'")}')">${esc(d)}</button>`
+  ).join('');
+}
+
+function setDept(d) {
+  activeDept = d;
+  buildChips();
+  render();
+}
+
+function render() {
+  const kw = document.getElementById('search').value.trim();
+  let rows = signups.slice().reverse();
+  if (activeDept !== '全部單位') rows = rows.filter(s => s.dept === activeDept);
+  if (kw) rows = rows.filter(s => (s.name || '').includes(kw) || (s.dept || '').includes(kw));
+
+  document.getElementById('count').textContent = rows.length;
+
+  const grid = document.getElementById('grid');
+  if (!rows.length) {
+    grid.innerHTML = `<div class="empty">${signups.length ? '找不到符合條件的報名資料' : '目前還沒有人報名，把表單連結分享出去吧！'}</div>`;
+    return;
+  }
+
+  // 完整填寫（電話 + Email 都有）給金色緞帶
+  grid.innerHTML = rows.map(s => {
+    const full = s.phone && s.email;
+    return `
+    <div class="person">
+      ${full ? '<div class="ribbon">👑 完整填寫</div>' : ''}
+      <div class="p-head">
+        <div class="avatar" style="background:${hashColor(s.name)}">${esc((s.name || '?').charAt(0))}</div>
+        <div>
+          <div class="p-name">${esc(s.name)}</div>
+          <div class="p-time">${fmtTime(s.time)} 報名</div>
+        </div>
+      </div>
+      <div class="p-tags">
+        <span class="tag dept">🏥 ${esc(s.dept)}</span>
+        ${s.phone ? `<span class="tag phone">📞 ${esc(s.phone)}</span>` : ''}
+        ${s.email ? `<span class="tag mail">✉️ ${esc(s.email)}</span>` : ''}
+        ${s.note ? `<span class="tag note">📝 ${esc(s.note)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+load();
+</script>
+</body>
+</html>
